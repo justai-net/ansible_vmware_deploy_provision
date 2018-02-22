@@ -62,7 +62,7 @@
 
   - name: Verbose newly created Virtual Machine and IP address
     debug:
-      msg: "{{ deploy.results.instance.hw_name }} - {{ deploy.results.instance.ipv4 }} - {{ vm_name }}"
+      msg: "{{ deploy.instance.hw_name }} - {{ deploy.instance.ipv4 }} - {{ vm_name }}"
     when: uuid|failed
     ignore_errors: true
 
@@ -70,12 +70,12 @@
     add_host:
       name: "{{ vm_name }}"
       group: created_nodes
-      ansible_ssh_host: "{{ deploy.results.instance.ipv4 }}"
+      ansible_ssh_host: "{{ deploy.instance.ipv4 }}"
       ansible_ssh_port: "{{ new_port }}"
       inventory_dir: "{{ inventory_dir }}"
     when: uuid|failed
-
     ignore_errors: true
+
   - name: Add Existing VM to inventory for further tasks
     add_host:
       name: "{{ item }}"
@@ -85,7 +85,7 @@
       inventory_dir: "{{ inventory_dir }}"
     with_items:
       - "{{ vm_name }}"
-    when: uuid
+    when: uuid|succeeded
 
 #### play 2 ####
 
@@ -95,4 +95,4 @@
   tasks:
   - name: Print out group
     debug:
-      var: hostvars[inventory_hostname]['ansible_hostname']
+      var: hostvars[inventory_hostname]
