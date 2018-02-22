@@ -1,0 +1,85 @@
+---
+- hosts: localhost
+  gather_facts: False
+  connection: local
+  vars_files:
+  - vars.yml
+  vars:
+    vcenter_hostname: ""
+    vcenter_user: ""
+    vcenter_pass: ""
+    vmtemplate: ""
+    vm_name: ""
+    new_port: ""
+    inventory_dir: ""
+
+  tasks:
+  - name: Gather Facts of all VMs in variable machines.
+    local_action:
+      module: vmware_vm_facts
+      hostname: "{{ vcenter_hostname }}"
+      username: "{{ vcenter_user }}"
+      password: "{{ vcenter_pass }}"
+      validate_certs: False
+    register: facts
+  - name: Verbose Virtual Machine and it's UUID.
+    debug:
+        msg: "{{ item }}: {{ facts['virtual_machines']['%s'| format(item)]['uuid'] }}"
+    with_items:
+    - "{{ vm_name }}"
+  - name: Clone a VM from Template and customize
+    vmware_guest:
+      hostname: "{{ vcenter_hostname }}"
+      username: "{{ vcenter_user }}"
+      password: "{{ vcenter_pass }}"
+      validate_certs: no
+      datacenter: justai-lab
+      cluster: cluster
+      name: "{{ vm_name }}"
+      state: poweredon
+      template: "{{ vmtemplate }}"
+      disk:
+      - size_gb: 50
+        type: thin
+        datastore: datastore2
+      hardware:
+        memory_mb: 1024
+        num_cpus: 2
+        scsi: paravirtual
+      networks:
+      - name: BridgedNetwork
+        type: dhcp
+      - name: VM Network
+        type: dhcp
+      wait_for_ip_address: yes
+    delegate_to: localhost
+    register: deploy
+    when: facts['virtual_machines']['%s'| format(item)] is not defined
+    with_items:
+    - "{{ vm_name }}"
+
+  - name: What is in deploy
+    debug:
+      msg: "{{ deploy.instance.ipv4 }} {{ vm_name }}"
+    when: facts['virtual_machines']['%s'| format(item)] is not defined
+    with_items:
+    - "{{ vm_name }}"
+
+  - name: Add host to inventory
+    add_host:
+      name: "{{ vm_name }}"
+      group: created_nodes
+      ansible_ssh_host: "{{ facts['virtual_machines']['%s' | format(item)]['ip_address']  }}"
+      ansible_ssh_port: "{{ new_port }}"
+      inventory_dir: "{{ inventory_dir }}"
+    with_items:
+    - "{{ vm_name }}"
+#### play 2 ####
+
+- name: Print out all hosts
+  hosts: created_nodes
+  gather_facts: true
+  tasks:
+  - name: Print out group
+    debug:
+      var: hostvars[inventory_hostname]
