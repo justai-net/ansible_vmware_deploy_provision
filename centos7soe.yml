@@ -22,11 +22,13 @@
       password: "{{ vcenter_pass }}"
       validate_certs: False
     register: facts
-  - name: Verbose Virtual Machine and it's UUID.
+    ignore_errors: true
+  - name: Check if virtual machine name exists and Verbose UUID
     debug:
         msg: "{{ item }}: {{ facts['virtual_machines']['%s'| format(item)]['uuid'] }}"
     with_items:
     - "{{ vm_name }}"
+    ignore_errors: true
   - name: Clone a VM from Template and customize
     vmware_guest:
       hostname: "{{ vcenter_hostname }}"
@@ -58,14 +60,14 @@
     with_items:
     - "{{ vm_name }}"
 
-  - name: What is in deploy
+  - name: Verbose newly created Virtual Machine and IP address
     debug:
       msg: "{{ deploy.instance.ipv4 }} {{ vm_name }}"
     when: facts['virtual_machines']['%s'| format(item)] is not defined
     with_items:
     - "{{ vm_name }}"
 
-  - name: Add host to inventory
+  - name: Add VM to inventory for further tasks
     add_host:
       name: "{{ vm_name }}"
       group: created_nodes
