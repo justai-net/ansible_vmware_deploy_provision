@@ -70,13 +70,26 @@
 
   - name: Add VM to inventory for further tasks
     add_host:
-      name: "{{ vm_name }}"
+      name: "{{ item }}"
+      group: created_nodes
+      ansible_ssh_host: "{{ deploy.instance.ivp4 }}"
+      ansible_ssh_port: "{{ new_port }}"
+      inventory_dir: "{{ inventory_dir }}"
+    with_items:
+    - "{{ vm_name }}"
+    when: deploy
+
+  - name: Add VM to inventory for further tasks
+    add_host:
+      name: "{{ item }}"
       group: created_nodes
       ansible_ssh_host: "{{ facts['virtual_machines']['%s' | format(item)]['ip_address']  }}"
       ansible_ssh_port: "{{ new_port }}"
       inventory_dir: "{{ inventory_dir }}"
     with_items:
     - "{{ vm_name }}"
+    when: facts
+
 #### play 2 ####
 
 - name: Print out all hosts
