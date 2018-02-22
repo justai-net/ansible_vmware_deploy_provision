@@ -63,9 +63,10 @@
   - name: Verbose newly created Virtual Machine and IP address
     debug:
       msg: "{{ deploy.instance.ipv4 }} {{ vm_name }}"
-    when: facts['virtual_machines']['%s'| format(item)] is not defined
+    when: deploy is not defined
     with_items:
     - "{{ vm_name }}"
+    ignore_errors: true
 
   - name: Add VM to inventory for further tasks
     add_host:
