@@ -92,6 +92,10 @@
 - name: Proceed to Provision the host,
   hosts: created_nodes
   gather_facts: true
+  roles:
+     - motd
+     - hostname
+
   tasks:
   - name: Print out group
     debug:

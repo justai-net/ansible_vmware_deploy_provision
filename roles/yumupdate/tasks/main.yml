@@ -1,0 +1,4 @@
+---
+- name: Yum update
+  yum: name=* state=latest
+  register: updates

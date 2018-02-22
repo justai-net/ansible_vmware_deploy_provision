@@ -1,0 +1,8 @@
+---
+- name: Adding motd
+  become: yes
+  template: src=motd.j2 dest=/etc/motd
+
+- name: emojify
+  become: yes
+  shell: sh -c "curl https://raw.githubusercontent.com/mrowa44/emojify/master/emojify -o /usr/local/bin/emojify && chmod +x /usr/local/bin/emojify"
