@@ -93,10 +93,5 @@
   hosts: created_nodes
   gather_facts: true
   roles:
-     - motd
      - hostname
-
-  tasks:
-  - name: Print out group
-    debug:
-      var: hostvars[inventory_hostname]
+     - motd
