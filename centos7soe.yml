@@ -14,7 +14,7 @@
     inventory_dir: ""
 
   tasks:
-  - name: Gather Facts of all VMs in variable machines.
+  - name: Gather Facts of all VMs in Virtual Center or ESXi.
     local_action:
       module: vmware_vm_facts
       hostname: "{{ vcenter_hostname }}"
@@ -95,3 +95,4 @@
   roles:
      - hostname
      - motd
+     - nginx

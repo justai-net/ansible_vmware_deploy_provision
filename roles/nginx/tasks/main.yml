@@ -1,0 +1,6 @@
+---
+- name: Install nginx
+  become: yes
+  yum:
+   name: nginx
+   state: present
