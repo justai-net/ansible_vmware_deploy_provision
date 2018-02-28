@@ -1,0 +1,5 @@
+---
+- name: Restart Network
+  become: yes
+  service: name=network state=restarted
+  listen: "restart network"

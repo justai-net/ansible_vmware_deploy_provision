@@ -1,0 +1,55 @@
+---
+- hosts: localhost
+  gather_facts: False
+  connection: local
+  vars_files:
+  - vars.yml
+
+  vars:
+    vcenter_hostname: ""
+    vcenter_user: ""
+    vcenter_pass: ""
+    vmtemplate: ""
+    vm_name: ""
+    new_port: ""
+    inventory_dir: ""
+
+  tasks:
+  - name: Gather Facts of all VMs in Virtual Center or ESXi.
+    local_action:
+      module: vmware_vm_facts
+      hostname: "{{ vcenter_hostname }}"
+      username: "{{ vcenter_user }}"
+      password: "{{ vcenter_pass }}"
+      validate_certs: False
+    register: facts
+
+  - name: Poweroff Virtual Machines
+    vmware_guest:
+      hostname: "{{ vcenter_hostname }}"
+      username: "{{ vcenter_user }}"
+      password: "{{ vcenter_pass }}"
+      validate_certs: no
+      datacenter: justai-lab
+      cluster: cluster
+      uuid: "{{ facts['virtual_machines']['%s'| format(item.name)]['uuid'] }}"
+      name: "{{ item.name }}"
+      state: poweredoff
+    with_items:
+    - "{{ spec.nodes }}"
+    delegate_to: localhost
+
+  - name: Destory Virtual Machines
+    vmware_guest:
+      hostname: "{{ vcenter_hostname }}"
+      username: "{{ vcenter_user }}"
+      password: "{{ vcenter_pass }}"
+      validate_certs: no
+      datacenter: justai-lab
+      cluster: cluster
+      uuid: "{{ facts['virtual_machines']['%s'| format(item.name)]['uuid'] }}"
+      name: "{{ item.name }}"
+      state: absent
+    with_items:
+    - "{{ spec.nodes }}"
+    delegate_to: localhost

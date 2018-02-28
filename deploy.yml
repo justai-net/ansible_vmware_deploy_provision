@@ -1,0 +1,127 @@
+---
+- name: Provision Virtual Machines using pyVmomi
+  hosts: localhost
+  gather_facts: False
+  connection: local
+  vars_files:
+  - vars.yml
+
+  vars:
+    vcenter_hostname: ''
+    vcenter_user: ''
+    vcenter_pass: ''
+    vmtemplate: ''
+    new_port: 22
+    inventory_dir: ''
+    ansible_ssh_user: ''
+    ansible_ssh_pass: ''
+    ansible_become_user: ''
+    ansible_become_pass: ''
+    ansible_ssh_extra_args: '-o StrictHostKeyChecking=no'
+  tasks:
+  - name: Gather Facts of all VMs in Virtual Center or ESXi.
+    local_action:
+      module: vmware_vm_facts
+      hostname: "{{ vcenter_hostname }}"
+      username: "{{ vcenter_user }}"
+      password: "{{ vcenter_pass }}"
+      validate_certs: False
+    register: facts
+
+  - name: Check if virtual machine name exists and Verbose UUID
+    debug:
+        msg: "{{ item.name }}: {{ facts['virtual_machines']['%s'| format(item.name)]['uuid'] }}"
+    with_items:
+    - "{{ spec.nodes }}"
+    ignore_errors: true
+    register: uuid
+
+  - name: Clone from Template and Customize Virtual Machine
+    vmware_guest:
+      hostname: "{{ vcenter_hostname }}"
+      username: "{{ vcenter_user }}"
+      password: "{{ vcenter_pass }}"
+      validate_certs: no
+      datacenter: justai-lab
+      cluster: cluster
+      name: "{{ item.name }}"
+      state: poweredon
+      template: "{{ item.os }}"
+      disk:
+      - size_gb: "{{ item.disk_size }}"
+        type: thin
+        datastore: datastore2
+      hardware:
+        memory_mb: "{{ item.mem }}"
+        num_cpus: 2
+        scsi: paravirtual
+      networks:
+      - name: BridgedNetwork
+        type: dhcp
+      - name: VM Network
+        ip: "{{ item.ip }}"
+        netmask: "{{ item.netmask }}"
+        gateway: "{{ item.gateway }}"
+      wait_for_ip_address: yes
+    with_items:
+    - "{{ spec.nodes }}"
+    delegate_to: localhost
+    register: deploy
+    when: uuid|failed
+
+  - name: Gather facts for new devices, if they have been cloned
+    local_action:
+      module: vmware_vm_facts
+      hostname: "{{ vcenter_hostname }}"
+      username: "{{ vcenter_user }}"
+      password: "{{ vcenter_pass }}"
+      validate_certs: False
+    register: facts
+    when: deploy|succeeded
+
+  - name: Add Existing VM to dynamic inventory for further tasks
+    add_host:
+      name: "{{ item.name }}"
+      group: "{{ item.services }}"
+      ansible_ssh_host: "{{ facts['virtual_machines']['%s' | format(item.name)]['ip_address']  }}"
+      ansible_ssh_port: "{{ new_port }}"
+      inventory_dir: "{{ inventory_dir }}"
+      ansible_ssh_user: "{{ ansible_ssh_user }}"
+      ansible_ssh_pass: "{{ ansible_ssh_pass }}"
+      ansible_become_user: "{{ ansible_become_user }}"
+      ansible_become_pass: "{{ ansible_become_pass }}"
+      ansible_ssh_extra_args: '-o StrictHostKeyChecking=no'
+    changed_when: false
+    with_items:
+      - "{{ spec.nodes }}"
+
+#### play 2 - Provisioning! ####
+- name: debug
+  hosts: all
+
+  tasks:
+  - debug:
+      msg: "{{ hostvars[inventory_hostname] }}"
+
+- name: Proceed to configure the Hostname, NIC
+  hosts: all
+  roles:
+     - hostname
+     - network
+
+- name: Proceed to Provision the nginx
+  hosts: nginx
+  gather_facts: false
+  roles:
+     - nginx
+
+- name: Proceed to Provision the MOTD
+  hosts: motd
+  roles:
+     - motd
+
+- name: Proceed to Provision the MYSQL
+  hosts: mysql
+  gather_facts: false
+  roles:
+     - mysql

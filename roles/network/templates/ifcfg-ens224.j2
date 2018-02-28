@@ -1,0 +1,16 @@
+# cat /etc/ansible/templates/ifcfg-interface
+# configured via ansible
+BOOTPROTO="static"
+DEVICE="ens224"
+ONBOOT=yes
+TYPE=Ethernet
+IPADDR={{ ansible_ens224.ipv4.address }}
+NETMASK={{ ansible_ens224.ipv4.netmask }}
+NETWORK={{ ansible_ens224.ipv4.network }}
+HWADDR={{ ansible_ens224.macaddress }}
+DEFROUTE=yes
+PEERDNS=no
+PEERROUTES=yes
+IPV4_FAILURE_FATAL=no
+IPV6INIT=no
+NAME="ens224"

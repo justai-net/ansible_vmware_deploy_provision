@@ -1,0 +1,5 @@
+---
+- name: Configure Static IP address
+  become: yes
+  template: src=ifcfg-ens224.j2 dest=/etc/sysconfig/network-scripts
+  notify: "restart network"
